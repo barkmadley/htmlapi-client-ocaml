@@ -41,15 +41,19 @@ val get_itemtype : context -> item -> itemtype list
 *)
 val is_type : context -> item -> itemtype -> bool
 
-type property_key = string
+type property_key
+
+val property_key_to_string : property_key -> string
 
 val get_properties : context -> item -> property_key list
 
 type property_value =
-  | Remote of context
   | Items of item list
+  | Data of string
 
 val get_value : context -> item -> property_key -> property_value
+
+val prop_value_to_string : context -> item -> property_value -> string
 
 val enter : Uri.t -> ( context -> 'returned ) -> 'returned Deferred.t
 val enter_s : string -> ( context -> 'returned ) -> 'returned Deferred.t
