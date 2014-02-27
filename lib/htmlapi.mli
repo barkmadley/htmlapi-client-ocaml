@@ -55,6 +55,6 @@ val get_value : context -> item -> property_key -> property_value
 
 val prop_value_to_string : context -> item -> property_value -> string
 
-val enter : Uri.t -> ( context -> 'returned ) -> 'returned Deferred.t
-val enter_s : string -> ( context -> 'returned ) -> 'returned Deferred.t
+val enter : Uri.t -> context Deferred.t
+val enter_s : string -> context Deferred.t
 

@@ -5,7 +5,11 @@
 open Core.Std
 open Async.Std
 
-type context = Nethtml.document list
+type context = Uri.t * Nethtml.document list
+
+let get_uri (uri, _html) = uri
+let get_html (_uri, html) = html
+let make_context uri html = (uri, html)
 
 type item = Nethtml.document
 
@@ -17,10 +21,10 @@ type property_value =
   | Items of item list
   | Data of string
 
-let prop_value_to_string c i p =
+let prop_value_to_string _c _i p =
   match p with
   | Data s -> s
-  | Items i -> "prop_value_to_string (Items i)"
+  | Items _i -> "prop_value_to_string (Items i)"
 
 let elem_children = function
   | Nethtml.Data _ -> []
@@ -28,26 +32,26 @@ let elem_children = function
 
 let get_items context =
   let module LA = List.Assoc in
-  let make_item context node = node in
+  let make_item _context node = node in
   let rec dfs_helper to_process items =
     match to_process with
     | [] -> items
     | Nethtml.Data _s :: tail -> dfs_helper tail items
-    | Nethtml.Element (name, attributes, children) as head :: tail ->
+    | Nethtml.Element (_name, attrs, children) as head :: tail ->
     begin
-      match LA.find attributes "itemtype", LA.find attributes "itemprop" with
-      | Some t, None -> dfs_helper tail (make_item context head :: items)
+      match LA.find attrs "itemtype", LA.find attrs "itemprop" with
+      | Some _, None -> dfs_helper tail (make_item context head :: items)
       | _ -> dfs_helper (children @ tail) items
     end
   in
-  dfs_helper context []
+  dfs_helper (get_html context) []
 
 let itemtype itemtype_str =
   [itemtype_str]
 
 let itemtype_to_string itemtype = itemtype
 
-let get_itemtype context item =
+let get_itemtype _context item =
   match item with
   | Nethtml.Data _ -> itemtype ""
   | Nethtml.Element (_n, attrs, _c) ->
@@ -56,11 +60,11 @@ let get_itemtype context item =
 let is_type context item itemtype =
   List.mem (get_itemtype context item) itemtype
 
-let make_props text head =
+let make_props _text head =
   (* TODO: split text on space and create separate elements *)
   [head]
 
-let get_properties context item =
+let get_properties _context item =
   let rec dfs_helper to_process props =
     match to_process with
     | [] -> props
@@ -74,10 +78,10 @@ let get_properties context item =
   in
   dfs_helper (elem_children item) []
 
-let get_value context item property =
+let get_value _context _item property =
   match property with
   | Nethtml.Data s -> Data s
-  | Nethtml.Element (_n, attrs, children) ->
+  | Nethtml.Element (_n, _attrs, children) ->
   begin
     match children with
     | [Nethtml.Data s] -> Data s
@@ -90,7 +94,7 @@ let property_key_to_string p =
   | Nethtml.Element (_n, attrs, _c) ->
     Option.value (List.Assoc.find attrs "itemprop") ~default:"missing!"
 
-let enter uri f =
+let enter uri : context Deferred.t =
   (* printf "GET %s\n%!" (Uri.to_string uri); *)
   Cohttp_async.Client.get uri
   >>= fun (_,body) ->
@@ -102,7 +106,7 @@ let enter uri f =
   let ch = new Netchannels.input_string body in
   let documents = Nethtml.parse ch in
   ch # close_in ();
-  return (f documents)
+  return (make_context uri documents)
 
-let enter_s s f =
-  enter (Uri.of_string s) f
+let enter_s s =
+  enter (Uri.of_string s)
