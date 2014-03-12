@@ -15,7 +15,7 @@ type item = Nethtml.document
 
 type itemtype = string
 
-type property_key = Nethtml.document
+type property_key = string * Nethtml.document list
 
 type property_value =
   | Items of item list
@@ -60,9 +60,9 @@ let get_itemtype _context item =
 let is_type context item itemtype =
   List.mem (get_itemtype context item) itemtype
 
-let make_props _text head =
+let make_props text head =
   (* TODO: split text on space and create separate elements *)
-  [head]
+  [(text, [head])]
 
 let get_properties _context item =
   let rec dfs_helper to_process props =
@@ -78,21 +78,32 @@ let get_properties _context item =
   in
   dfs_helper (elem_children item) []
 
-let get_value _context _item property =
-  match property with
-  | Nethtml.Data s -> Data s
-  | Nethtml.Element (_n, _attrs, children) ->
-  begin
-    match children with
-    | [Nethtml.Data s] -> Data s
-    | _ -> Data "test"
-  end
-
-let property_key_to_string p =
+let prop_k_to_string p =
   match p with
   | Nethtml.Data s -> s (* Should not happen really *)
   | Nethtml.Element (_n, attrs, _c) ->
     Option.value (List.Assoc.find attrs "itemprop") ~default:"missing!"
+
+let property_key_to_string (key, _nodes) = key
+
+let prop_v_to_string p =
+  match p with
+  | Nethtml.Data s -> s
+  | Nethtml.Element (_n, _attrs, children) ->
+  begin
+    match children with
+    | [Nethtml.Data s] -> s
+    | _ -> "missing!"
+  end
+
+let get_value _context _item (_key, nodes) =
+  Data (
+    "[" ^
+    String.concat ~sep:", "
+      (List.map ~f:prop_v_to_string nodes)
+    ^ "]"
+  )
+
 
 let enter uri : context Deferred.t =
   (* printf "GET %s\n%!" (Uri.to_string uri); *)

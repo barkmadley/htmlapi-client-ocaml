@@ -1,10 +1,9 @@
 open Core.Std
 open Async.Std
 
-let main () : unit Deferred.t =
-  Htmlapi.enter_s "http://localhost:8080/"
-  >>= fun c ->
+let print_items url c : unit Deferred.t =
   (* printf "Reached!\n"; *)
+  printf "url: %s\n" url;
   List.iter (Htmlapi.get_items c) ~f:(fun item ->
     printf "<item: [%s]>\n%!"
       (String.concat ~sep:", " (List.map ~f:Htmlapi.itemtype_to_string (Htmlapi.get_itemtype c item)));
@@ -15,6 +14,21 @@ let main () : unit Deferred.t =
     )
   )
   |> return
+
+let get url : unit Deferred.t =
+  return url
+  >>= Htmlapi.enter_s
+  >>= print_items url
+
+let main () : unit Deferred.t =
+  Deferred.all_unit
+    (List.map ~f:get
+      [
+        "http://localhost:8080/";
+        "http://localhost:8080/inline-link";
+        "http://localhost:8080/inline-repr";
+      ]
+    )
 
 let () =
   upon (main ()) (fun () -> Shutdown.shutdown 0);
