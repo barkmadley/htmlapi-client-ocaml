@@ -20,6 +20,7 @@ type property_key = string * Nethtml.document list
 type property_value =
   | Item of item
   | Data of string
+  | Multiple of property_value list
 
 let elem_children = function
   | Nethtml.Data _ -> []
@@ -105,12 +106,18 @@ let item_to_string context item =
     (String.concat ~sep:", "
       (List.map ~f:itemtype_to_string (get_itemtype context item)))
 
-let prop_value_to_string c _i p =
+let rec prop_value_to_string c _i p =
   match p with
+  | Multiple props ->
+  begin
+     Printf.sprintf "[%s]"
+      (String.concat ~sep:", "
+        (List.map ~f:(prop_value_to_string c _i) props))
+  end
   | Data s -> s
   | Item i -> item_to_string c i
 
-let get_value _context _item (_key, nodes) : property_value list =
+let get_value _context _item (_key, nodes) : property_value =
   let get_v node =
     match node with
     | Nethtml.Data s -> Data s
@@ -121,7 +128,10 @@ let get_value _context _item (_key, nodes) : property_value list =
       | None -> Data (prop_v_to_string node)
     end
   in
-  List.map ~f:get_v nodes
+  match nodes with
+  | []     -> Data ""
+  | [node] -> get_v node
+  | nodes  -> Multiple (List.map ~f:get_v nodes)
 
 let document_get_by_id document id : Nethtml.document list =
   let f elem items =

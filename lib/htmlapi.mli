@@ -52,8 +52,9 @@ val get_properties : context -> item -> property_key list
 type property_value =
   | Item of item
   | Data of string
+  | Multiple of property_value list
 
-val get_value : context -> item -> property_key -> property_value list
+val get_value : context -> item -> property_key -> property_value
 
 val prop_value_to_string : context -> item -> property_value -> string
 

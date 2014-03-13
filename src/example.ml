@@ -7,9 +7,9 @@ let print_items url c : unit Deferred.t =
   List.iter (Htmlapi.get_items c) ~f:(fun item ->
     printf "%s\n%!" (Htmlapi.item_to_string c item);
     List.iter (Htmlapi.get_properties c item) ~f:(fun prop ->
-      printf "\t%s = [%s]\n"
+      printf "\t%s = %s\n"
         (Htmlapi.property_key_to_string prop)
-        (String.concat ~sep:", " (List.map ~f:(Htmlapi.prop_value_to_string c item) (Htmlapi.get_value c item prop)))
+        (Htmlapi.prop_value_to_string c item (Htmlapi.get_value c item prop))
     )
   )
   |> return
