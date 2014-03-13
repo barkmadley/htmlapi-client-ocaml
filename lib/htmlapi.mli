@@ -20,6 +20,10 @@ type item
 *)
 val get_items : context -> item list
 
+(**
+*)
+val item_to_string : context -> item -> string
+
 (** A Microdata itemtype. An item can have multiple types.
 *)
 type itemtype
@@ -46,10 +50,10 @@ val property_key_to_string : property_key -> string
 val get_properties : context -> item -> property_key list
 
 type property_value =
-  | Items of item list
+  | Item of item
   | Data of string
 
-val get_value : context -> item -> property_key -> property_value
+val get_value : context -> item -> property_key -> property_value list
 
 val prop_value_to_string : context -> item -> property_value -> string
 

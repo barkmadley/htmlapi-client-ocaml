@@ -18,13 +18,8 @@ type itemtype = string
 type property_key = string * Nethtml.document list
 
 type property_value =
-  | Items of item list
+  | Item of item
   | Data of string
-
-let prop_value_to_string _c _i p =
-  match p with
-  | Data s -> s
-  | Items _i -> "prop_value_to_string (Items i)"
 
 let elem_children = function
   | Nethtml.Data _ -> []
@@ -105,13 +100,28 @@ let prop_v_to_string p =
     | _ -> "missing!"
   end
 
-let get_value _context _item (_key, nodes) =
-  Data (
-    "[" ^
-    String.concat ~sep:", "
-      (List.map ~f:prop_v_to_string nodes)
-    ^ "]"
-  )
+let item_to_string context item =
+  Printf.sprintf "<item: [%s]>"
+    (String.concat ~sep:", "
+      (List.map ~f:itemtype_to_string (get_itemtype context item)))
+
+let prop_value_to_string c _i p =
+  match p with
+  | Data s -> s
+  | Item i -> item_to_string c i
+
+let get_value _context _item (_key, nodes) : property_value list =
+  let get_v node =
+    match node with
+    | Nethtml.Data s -> Data s
+    | Nethtml.Element (_n, attrs, _c) ->
+    begin
+      match List.Assoc.find attrs "itemtype" with
+      | Some t -> Item node
+      | None -> Data (prop_v_to_string node)
+    end
+  in
+  List.map ~f:get_v nodes
 
 let document_get_by_id document id : Nethtml.document list =
   let f elem items =
