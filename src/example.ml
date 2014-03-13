@@ -27,6 +27,7 @@ let main () : unit Deferred.t =
         "http://localhost:8080/";
         "http://localhost:8080/inline-link";
         "http://localhost:8080/inline-repr";
+        "http://localhost:8080/inline-repr#12345";
       ]
     )
 

@@ -113,12 +113,22 @@ let get_value _context _item (_key, nodes) =
     ^ "]"
   )
 
+let document_get_by_id document id : Nethtml.document list =
+  let f elem items =
+    match elem with
+    | Nethtml.Data _s -> [], items
+    | Nethtml.Element (_n, attrs, children) ->
+    begin
+      match List.Assoc.find attrs "id" with
+      | Some id_v when id_v = id -> [], (elem :: items)
+      | _                        -> children, items
+    end
+  in
+  dfs_fold f document []
 
-let enter uri : context Deferred.t =
-  (* printf "GET %s\n%!" (Uri.to_string uri); *)
+let download uri : Nethtml.document list Deferred.t =
   Cohttp_async.Client.get uri
   >>= fun (_,body) ->
-  (* printf "Got body\n%!"; *)
   Pipe.to_list body
   >>= fun lines ->
   let body = String.concat lines in
@@ -126,7 +136,23 @@ let enter uri : context Deferred.t =
   let ch = new Netchannels.input_string body in
   let documents = Nethtml.parse ch in
   ch # close_in ();
-  return (make_context uri documents)
+  let documents =
+    match Uri.fragment uri with
+    | Some fragment ->
+    begin
+      let lookup = document_get_by_id documents fragment in
+      match lookup with
+      | [] -> documents
+      | _  -> lookup
+    end
+    | None -> documents
+  in
+  return documents
+
+
+let enter uri : context Deferred.t =
+  (* printf "GET %s\n%!" (Uri.to_string uri); *)
+  download uri >>| make_context uri
 
 let enter_s s =
   enter (Uri.of_string s)
