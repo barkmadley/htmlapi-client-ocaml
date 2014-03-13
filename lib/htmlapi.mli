@@ -5,8 +5,6 @@
 open Core.Std
 open Async.Std
 
-open Cow
-
 (** The context is an abstract type that tracks things like what the current
   document uri is such that object field traversals can load other documents
   and other hypermedia minitia.
