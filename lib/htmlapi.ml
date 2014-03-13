@@ -30,21 +30,30 @@ let elem_children = function
   | Nethtml.Data _ -> []
   | Nethtml.Element (_name, _attrs, children) -> children
 
+let rec dfs_fold f to_process items =
+  match to_process with
+  | [] -> items
+  | Nethtml.Data _s :: tail -> dfs_fold f tail items
+  | Nethtml.Element (_name, attrs, children) as head :: tail ->
+  begin
+    let add, items_next = f head items in
+    dfs_fold f (add @ tail) items_next
+  end
+
 let get_items context =
   let module LA = List.Assoc in
   let make_item _context node = node in
-  let rec dfs_helper to_process items =
-    match to_process with
-    | [] -> items
-    | Nethtml.Data _s :: tail -> dfs_helper tail items
-    | Nethtml.Element (_name, attrs, children) as head :: tail ->
+  let f elem items =
+    match elem with
+    | Nethtml.Data _s -> [], items
+    | Nethtml.Element (_name, attrs, children) ->
     begin
       match LA.find attrs "itemtype", LA.find attrs "itemprop" with
-      | Some _, None -> dfs_helper tail (make_item context head :: items)
-      | _ -> dfs_helper (children @ tail) items
+      | Some _, None -> [], (make_item context elem :: items)
+      | _ -> children, items
     end
   in
-  dfs_helper (get_html context) []
+  dfs_fold f (get_html context) []
 
 let itemtype itemtype_str =
   [itemtype_str]
