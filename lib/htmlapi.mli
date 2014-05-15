@@ -54,10 +54,12 @@ type property_value =
   | Data of string
   | Multiple of property_value list
 
-val get_value : context -> item -> property_key -> property_value
+val get_value : context -> item -> property_key -> property_value Deferred.t
 
 val prop_value_to_string : context -> item -> property_value -> string
 
-val enter : Uri.t -> context Deferred.t
-val enter_s : string -> context Deferred.t
+val make_context : unit -> context Deferred.t
+
+val enter : context -> Uri.t -> context Deferred.t
+val enter_s : context -> string -> context Deferred.t
 
