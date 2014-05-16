@@ -1,4 +1,6 @@
 
+(* https://gist.github.com/nvanderw/8995984 *)
+
 module type Functor = sig
     type 'a t
     val fmap : ('a -> 'b) -> 'a t -> 'b t
