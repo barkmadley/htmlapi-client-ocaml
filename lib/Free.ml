@@ -26,6 +26,15 @@ module Free = functor (F : Functor) -> struct
 
 end
 
+module type MonadExtra = sig
+    type 'a t
+
+    val join : 'a t t -> 'a t
+    val map : ('a -> 'b) -> 'a t -> 'b t
+
+    val seq : 'a t -> 'b t -> 'b t
+end
+
 module MonadUtils = functor (M : Monad) -> struct
     type 'a t = 'a M.t
 

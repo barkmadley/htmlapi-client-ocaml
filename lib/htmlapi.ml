@@ -208,8 +208,8 @@ module HtmlapiFunctor = struct
 
 end
 
-module FreeHtmlApi = Free(HtmlapiFunctor)
-module FreeHtmlApi_Extra = MonadUtils(FreeHtmlApi)
+module FreeHtmlapi = Free(HtmlapiFunctor)
+module FreeHtmlapi_Extra = MonadUtils(FreeHtmlapi)
 
 module IOInterpreter = struct
 
@@ -252,8 +252,8 @@ module IOInterpreter = struct
 
   let rec unsafePerform m : 'a Deferred.t =
     match m with
-    | FreeHtmlApi.Return x -> return x
-    | FreeHtmlApi.Wrap fa ->
+    | FreeHtmlapi.Return x -> return x
+    | FreeHtmlapi.Wrap fa ->
       match fa with
       | HtmlapiFunctor.Follow (uri, cont) ->
       begin
@@ -270,7 +270,7 @@ end
   netout # close_out ();
   buffer.contents buffer *)
 
-let get_items mdoc : microdata_object list =
+let microdata_document_objects mdoc : microdata_object list =
   let module LA = List.Assoc in
   let make_item _context node = node in
   let f elem items =
@@ -285,33 +285,7 @@ let get_items mdoc : microdata_object list =
   in
   List.rev (dfs_fold f mdoc.doc [])
 
-let example : microdata_document FreeHtmlApi.t =
-  let (>>=) m n = FreeHtmlApi.bind m n in
-  let (>>) m n = FreeHtmlApi_Extra.seq m n in
-  let download uri = FreeHtmlApi.liftF (HtmlapiFunctor.Follow (uri, Fn.id)) in
-  let print_uri uri_s : microdata_document FreeHtmlApi.t =
-    download (Uri.of_string uri_s) >>= fun docs ->
-    let items = get_items docs in
-    let strings =
-      List.iter ~f:(fun item ->
-        printf "%s\n%!" (microdata_object_to_string_with_prop item);
-      ) items
-    in
-    FreeHtmlApi.return docs
-  in
-
-  print_uri "http://localhost:8080/" >>
-  print_uri "http://localhost:8080/inline-link" >>
-  print_uri "http://localhost:8080/inline-repr" >>
-  print_uri "http://localhost:8080/inline-repr#12345"
-
-let main () : unit Deferred.t =
-  IOInterpreter.unsafePerform example >>= (fun _ -> return ())
-
-let () =
-  upon (main ()) (fun () -> Shutdown.shutdown 0);
-  never_returns (Scheduler.go ())
-
+(*
 
 module Uri = struct
   module Inner_Uri = struct
@@ -545,3 +519,4 @@ let get_value context _item (_key, nodes) : property_value Deferred.t =
 
 let enter_s c s =
   enter c (Uri.of_string s)
+*)
