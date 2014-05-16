@@ -179,8 +179,18 @@ and microdata_property_to_string value =
 module HtmlapiFunctor = struct
 
   type 'next htmlapi =
-    (* document_list = enter uri *)
+    (* microdata_document = follow uri *)
     | Follow of Uri.t * (microdata_document -> 'next)
+
+    (* microdata_object list = object microdata_document *)
+    (* (string * uri) list = links microdata_document *)
+    (* (string * form) list = forms microdata_document *)
+
+    (* string list = props microdata_object *)
+    (* microdata_field option = get_field microdata_object string *)
+
+    (* (string * uri) list = links microdata_object *)
+    (* (string * form) list = forms microdata_object *)
 
   type 'next t = 'next htmlapi (* for the Free functor *)
 
