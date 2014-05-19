@@ -61,6 +61,12 @@ let example2 : unit FreeHtmlapi.t =
         printf "objects[0].user.other=\n%s\n"
           (String.concat ~sep:"\n" (microdata_property_to_strings mfield))
       in
+      FreeHtmlapi.return () >>
+      get o "other" >>= fun mfield ->
+      let () =
+        printf "objects[0].user.other=\n%s\n"
+          (String.concat ~sep:"\n" (microdata_property_to_strings mfield))
+      in
       FreeHtmlapi.return ()
     end
     | _ -> FreeHtmlapi.return ()
@@ -74,7 +80,7 @@ let example2 : unit FreeHtmlapi.t =
   print_uri (Sys.argv.(1))
 
 let main () : unit Deferred.t =
-  HtmlapiAsyncInterpreter.Interpreter.unsafePerform example2 >>= (fun _ -> return ())
+  HtmlapiAsyncInterpreter.Interpreter.run example2 >>= (fun _ -> return ())
 
 let () =
   upon (main ()) (fun () -> Shutdown.shutdown 0);
