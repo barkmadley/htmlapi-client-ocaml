@@ -66,7 +66,6 @@ module Interpreter = struct
     in
     return { uri = uri; doc = documents }
 
-  (* TODO: download uri caching *)
   let rec unsafePerform httpcache (m : 'a FreeHtmlapi.t) : 'a Deferred.t =
     match m with
     | FreeHtmlapi.Return x -> return x
