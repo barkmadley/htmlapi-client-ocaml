@@ -109,25 +109,59 @@ let microdata_object_links mobj =
   in
   dfs_fold f [mobj.root] []
 
+let textContent c =
+  let f elem items =
+    match elem with
+    | Nethtml.Data s -> [], (String.strip s :: items)
+    | Nethtml.Element (_n, _, c) -> c, items
+  in
+  String.concat ~sep:" " (List.rev (dfs_fold f c []))
+
 let make_microdata_field doc root domname attrs children =
   match List.Assoc.find attrs "itemscope", List.Assoc.find attrs "itemtype" with
   | _,Some _ | Some _,_ -> Object ({ doc = doc; root = root; })
   | _ ->
   begin
+    (* http://www.w3.org/TR/microdata/#values *)
     match domname with
+    | "meta" ->
+    begin
+      Data (Option.value ~default:"" (List.Assoc.find attrs "content"))
+    end
+    | "audio" | "embed" | "iframe" | "img" | "source" | "track" | "video" ->
+    begin
+      (* TODO: resolve src uri *)
+      Data (Option.value ~default:"" (List.Assoc.find attrs "src"))
+    end
     | "a" when List.Assoc.mem attrs "href" ->
     begin
       Link (Uri.resolve "" doc.uri (Uri.of_string (List.Assoc.find_exn attrs "href")))
     end
+    | "a" | "area" | "link" ->
+    begin
+      (* TODO: resolve href uri *)
+      Data (Option.value ~default:"" (List.Assoc.find attrs "href"))
+    end
+    | "object" ->
+    begin
+      (* TODO: resolve data uri *)
+      Data (Option.value ~default:"" (List.Assoc.find attrs "data"))
+    end
+    | "data" ->
+    begin
+      Data (Option.value ~default:"" (List.Assoc.find attrs "value"))
+    end
+    | "meter" ->
+    begin
+      Data (Option.value ~default:"" (List.Assoc.find attrs "value"))
+    end
+    | "time" ->
+    begin
+      Data (Option.value ~default:(textContent children) (List.Assoc.find attrs "datetime"))
+    end
     | _ ->
     begin
-      let f elem items =
-        match elem with
-        | Nethtml.Data s -> [], (String.strip s :: items)
-        | Nethtml.Element (_n, _, c) -> c, items
-      in
-      let r = String.concat ~sep:" " (List.rev (dfs_fold f children [])) in
-      Data r
+      Data (textContent children)
     end
   end
 
