@@ -29,8 +29,8 @@ module Interpreter = struct
     dfs_fold f documents []
 
   let download httpcache uri : microdata_document Deferred.t =
-    printf "GET %s ..." (Uri.to_string uri);
     let uri_wo_fragment = Uri.with_fragment uri None in
+    printf "GET %s ..." (Uri.to_string uri_wo_fragment);
     (match Hashtbl.find httpcache uri_wo_fragment with
     | Some documents ->
     begin
@@ -53,18 +53,7 @@ module Interpreter = struct
       return documents
     end
     ) >>= fun documents ->
-    let documents =
-      match Uri.fragment uri with
-      | Some fragment ->
-      begin
-        let lookup = document_get_by_id documents fragment in
-        match lookup with
-        | [] -> documents
-        | _  -> lookup
-      end
-      | None -> documents
-    in
-    return { uri = uri; doc = documents }
+    return { uri = uri_wo_fragment; doc = documents; }
 
   let rec unsafePerform httpcache (m : 'a FreeHtmlapi.t) : 'a Deferred.t =
     match m with
@@ -90,20 +79,45 @@ module Interpreter = struct
           | Some l ->
           begin
             download httpcache l >>= fun doc ->
-            match Htmlapi.microdata_document_objects doc with
-            | [o] ->
-              unsafePerform httpcache (cont (Htmlapi.microdata_object_get o field_name))
-            | other -> unsafePerform httpcache (cont [])
+            (* TODO: remove duplication below *)
+            let result =
+              match Uri.fragment l with
+              | None ->
+              begin
+                match Htmlapi.microdata_document_objects doc with
+                | [o] -> Htmlapi.microdata_object_get o field_name
+                | _other -> []
+              end
+              | Some frag ->
+              begin
+                let dummy_doc = { uri = l; doc = (document_get_by_id doc.doc frag); } in
+                match Htmlapi.microdata_document_objects dummy_doc with
+                | [o] ->
+                  let new_o = { doc = doc; root = o.root; } in
+                  Htmlapi.microdata_object_get new_o field_name
+                | _other -> []
+              end
+            in
+            unsafePerform httpcache (cont result)
           end
         end
-        (* Result is a link to another object, dereference link and return the object *)
+        (* Result is a link to another object, dereference link and return the object(s) *)
         | [Link a] ->
         begin
           download httpcache a >>= fun doc ->
-          let v =
-            List.map ~f:(fun o -> Object o) (Htmlapi.microdata_document_objects doc)
+          let result =
+            match Uri.fragment a with
+            | None ->
+            begin
+              List.map ~f:(fun o -> Object o) (Htmlapi.microdata_document_objects doc)
+            end
+            | Some frag ->
+            begin
+              let dummy_doc = { uri = a; doc = (document_get_by_id doc.doc frag); } in
+              List.map ~f:(fun o -> Object ({ doc; root = o.root; })) (Htmlapi.microdata_document_objects dummy_doc)
+            end
           in
-          unsafePerform httpcache (cont v)
+          unsafePerform httpcache (cont result)
         end
         | _ -> unsafePerform httpcache (cont v)
       end
